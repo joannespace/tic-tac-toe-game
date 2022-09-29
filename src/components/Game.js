@@ -1,16 +1,24 @@
 import React, { useState, useEffect } from "react";
 import Board from "./Board";
+import History from "./History";
 
 function Game() {
-  const [squares, setSquares] = useState(Array(9).fill(null));
+  const [history, setHistory] = useState([
+    {
+      squares: Array(9).fill(null),
+    },
+  ]);
+  console.log(history)
+
   const [xIsNext, setXIsNext] = useState(true);
   const [winner, setWinner] = useState(null);
+  const [stepNumber, setStepNumber] = useState(0);
 
   //Declaring a Winner
   useEffect(() => {
-    const newWinner = calculateWinner(squares);
+    const newWinner = calculateWinner(history[history.length - 1].squares);
     setWinner(newWinner);
-  }, [squares]);
+  }, [history]);
 
   //function to check if a player has won.
   //If a player has won, we can display text such as “Winner: X” or “Winner: O”.
@@ -32,7 +40,7 @@ function Game() {
         squares[a] &&
         squares[a] === squares[b] &&
         squares[a] === squares[c]
-      ) {        
+      ) {
         return squares[a];
       }
     }
@@ -41,40 +49,61 @@ function Game() {
 
   //Handle player
   const handleClick = (i) => {
-    const result = [...squares];
+    const currentHistory = history.slice(0, stepNumber + 1); //Get the previous history result before clicking
+    console.log(currentHistory);
+    const current = currentHistory[currentHistory.length - 1]; //Get the object history result
+    const squares = current.squares.slice(); //Get the array history result
 
-    if(calculateWinner(result) || result[i]) {
+    if (calculateWinner(squares) || squares[i]) {
       return;
     }
 
-    result[i] = xIsNext ? "X" : "O";
+    squares[i] = xIsNext ? "X" : "O";
 
-    setSquares(result);
-    
-    
-    setXIsNext((prevState) => !prevState); //prevState hold the previous value of setXIsNext before this execution
-    console.log(result);
+    setHistory(
+      currentHistory.concat([
+        {
+          squares: squares,
+        },
+      ])
+    );
+    setStepNumber(currentHistory.length);
+    setXIsNext((prevState) => !prevState);
+  };
+  
+
+  //Undo game
+  const jumpTo = (step) => {
+    setStepNumber(step);
+    setXIsNext(step % 2 === 0);
   };
 
   //Restart game
-  const handleRestart = () => {
-    setWinner(null);
-    setSquares(Array(9).fill(null));
+  const handlRestart = () => {
+    setStepNumber(0);
+    setHistory([
+      {
+        squares: Array(9).fill(null),
+      },
+    ]);
     setXIsNext(true);
   };
 
   return (
     <div className="main">
       <h2 className="result">Winner is: {winner ? winner : "N/N"}</h2>
-      <div className="game">
-        <span className="player">Next player is: {xIsNext ? "X" : "O"}</span>
-        <Board squares={squares} handleClick={handleClick} />
+      <span className="player">Next player is: {xIsNext ? "X" : "O"}</span>
+        <div className="game">
+          <Board
+            squares={history[stepNumber].squares}
+            handleClick={handleClick}
+          />
+          <History history={history} jumpTo={jumpTo} />
+        </div>
         
-      </div>
-      <button onClick={handleRestart} className="restart-btn">
+      <button onClick={handlRestart} className="restart-btn">
         Restart
       </button>
-
     </div>
   );
 }
